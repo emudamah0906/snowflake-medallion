@@ -76,6 +76,6 @@ PUT file://<path>/data/*.csv @INSURANCE_DEMO.BRONZE.STG_RAW AUTO_COMPRESS=TRUE;
 - [x] Stage 1 — Bronze — 51 brokers, 10,050 policies (2 snapshots), 12,060 claims loaded and verified
 - [x] Stage 2 — Silver — 50 brokers, 10,000 policy-snapshots, 11,887 claims; 113 quarantined, every Bronze row reconciled
 - [x] Stage 3 — Gold, star schema, SCD2 — 5,603 policy versions (5,001 current + 602 closed), 11,887 facts at one row per claim
-- [ ] Stage 4 — Streams and Tasks
-- [ ] Stage 5 — Reconciliation gate
+- [x] Stage 4 — Streams and Tasks — append-only streams, 4-task tree, MERGE-based idempotent promotion
+- [x] Stage 5 — Reconciliation gate — 12 checks across two gates, failure blocks promotion to Gold
 - [ ] Stage 6 — Performance and cost tuning
