@@ -30,12 +30,18 @@ Interactive. It asks for a series of values; the ones that matter:
 Press Enter to skip anything else.
 
 **Finding your account identifier.** In Snowsight, bottom-left account menu → hover your account →
-**Copy account identifier**. It looks like `ABCDEFG-HI12345`. If you only have a URL like
-`https://abcdefg-hi12345.snowflakecomputing.com`, the identifier is the part before
-`.snowflakecomputing.com`.
+**Copy account identifier**. It looks like `ABCDEFG-HI12345`.
 
-Credentials land in `~/.snowflake/config.toml` with `0600` permissions. That file is outside this
-repo and must never be committed.
+**Your username is not your email.** This is the thing that costs people an hour. Snowsight →
+Settings → Profile shows a **Username** field — that's what Snowflake wants. Here it's
+`<YOUR_SNOWFLAKE_USER>`, while the login email is `<your-login-email>`. Using the email gives you
+`Incorrect username or password`, which reads like a password problem and isn't.
+
+Credentials land in `~/Library/Application Support/snowflake/config.toml` on macOS (**not**
+`~/.snowflake/`, which is the Linux path). That file is outside this repo and must never be
+committed.
+
+**This account:** `<your-account-locator>` · user `<YOUR_SNOWFLAKE_USER>` · Enterprise edition · GCP us-east4.
 
 ---
 
@@ -62,11 +68,19 @@ Common failures:
 
 ```bash
 cd ~/Desktop/"Data Engineer Plan 2026"/04-Projects/snowflake-medallion
-snow sql -c medallion -f sql/00_setup.sql
+snow sql -c medallion --database SNOWFLAKE -f sql/00_setup.sql
 ```
+
+`--database SNOWFLAKE` is needed **only on this first run**. The connection points at
+`INSURANCE_DEMO`, which doesn't exist yet, so the CLI can't establish a session without an override.
+After this script runs, drop the flag.
 
 Creates the warehouse, database, four schemas, file format and stage. The last statement prints
 your current warehouse, database and role — that's your confirmation.
+
+> **Gotcha: no `&` in your SQL.** Snowflake CLI treats `&NAME` as a template variable, so a comment
+> reading `'P&C insurance'` fails with `SQL template rendering error: 'C' is undefined`. Write
+> "P and C", or switch to `<% %>` templating.
 
 Read the comments in that file as it runs. They explain *why* Bronze does no date parsing, which is
 a real interview answer, not decoration.

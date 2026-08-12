@@ -72,7 +72,7 @@ PUT file://<path>/data/*.csv @INSURANCE_DEMO.BRONZE.STG_RAW AUTO_COMPRESS=TRUE;
 
 ## Status
 
-- [x] Stage 0 — environment, source data
+- [x] Stage 0 — environment, source data, staged files
 - [ ] Stage 1 — Bronze
 - [ ] Stage 2 — Silver
 - [ ] Stage 3 — Gold, star schema, SCD2

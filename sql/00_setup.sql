@@ -28,7 +28,7 @@ CREATE WAREHOUSE IF NOT EXISTS WH_MEDALLION
 -- Database and schemas — this is STORAGE. One schema per medallion layer.
 -- -----------------------------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS INSURANCE_DEMO
-    COMMENT = 'P&C insurance medallion demo';
+    COMMENT = 'P and C insurance medallion demo';
 
 USE DATABASE INSURANCE_DEMO;
 
