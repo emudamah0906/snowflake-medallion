@@ -74,7 +74,7 @@ PUT file://<path>/data/*.csv @INSURANCE_DEMO.BRONZE.STG_RAW AUTO_COMPRESS=TRUE;
 
 - [x] Stage 0 — environment, source data, staged files
 - [x] Stage 1 — Bronze — 51 brokers, 10,050 policies (2 snapshots), 12,060 claims loaded and verified
-- [ ] Stage 2 — Silver
+- [x] Stage 2 — Silver — 50 brokers, 10,000 policy-snapshots, 11,887 claims; 113 quarantined, every Bronze row reconciled
 - [ ] Stage 3 — Gold, star schema, SCD2
 - [ ] Stage 4 — Streams and Tasks
 - [ ] Stage 5 — Reconciliation gate

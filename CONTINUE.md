@@ -31,27 +31,25 @@ Read `README.md`, `SETUP.md`, `RECORDING.md` and `WEEK-01.md` in the project bef
   (two snapshots), 12,060 claims. Every defect count matched the source exactly: 248 malformed
   start_dates, 20 product spellings, 60 duplicate claim_ids, 172 suspect amounts, 129 orphans.
   Reran the claims `COPY INTO` — 0 files processed, count unchanged at 12,060. Idempotence proven.
-- **Stage 2 — SQL written, NOT RUN.** `sql/02_silver.sql` is ready.
+- **Stage 2 — DONE and verified (2026-08-12).** SILVER holds 50 brokers, 10,000 policy-snapshots
+  (5,000 per extract date), 11,887 claims. 113 claims quarantined in `OPS.QUARANTINE` for
+  zero/negative amounts. Step 5 reconciliation returned `TRUE` on all three tables — every Bronze
+  row accounted for as Silver, quarantined, or removed duplicate. Products 20 → 5, regions 12 → 5.
+  Silver totals: premium **127,248,528.88**, claim amount **1,063,516,068.75**.
 - **Stages 3–7 — not started.**
 
-**Next action:** I run `sql/02_silver.sql` in Snowsight, statement by statement, and report back.
+**Next action:** write `sql/03_gold.sql` — `dim_broker`, `dim_date`, `dim_policy` (SCD Type 2),
+`fact_claim`. This is the highest-value stage of the whole week: it proves the Gold-layer resume
+claim and the star-schema/SCD2 claim in one piece of work.
 
-Expected Silver results:
+Grain, decided and unchanged: **one row of `fact_claim` = one claim.**
 
-| Table | Bronze | → Silver | Quarantined | Dupes removed |
-|---|---|---|---|---|
-| BROKERS | 51 | **50** | 0 | 1 |
-| POLICIES | 10,050 | **10,000** (5,000 per extract) | 0 | 50 |
-| CLAIMS | 12,060 | **11,887** | 113 | 60 |
+The raw material for SCD2 is already sitting in `SILVER.POLICIES` — 602 policies appear twice with
+different status/premium across the 2026-08-01 and 2026-08-15 extracts. Each should end up as one
+closed row (`valid_to` set, `is_current = FALSE`) and one current row.
 
-Flags kept (not quarantined): policies invalid start_date **246**, invalid end_date **200**;
-claims invalid date **251**, orphan policy_id **128**, amount outlier **59**.
-Products 20 → **5**. Regions 12 → **5**.
-Silver totals: premium **127,248,528.88**, claim amount **1,063,516,068.75**.
-
-Step 5 must show `reconciled = TRUE` on all three rows.
-
-Then write `sql/03_gold.sql`.
+Orphan claims (128, flagged `is_orphan_policy`) must point at an "unknown policy" dimension member,
+not be dropped — dropping them breaks the control totals the Stage 5 gate reconciles against.
 
 ## The stages
 
