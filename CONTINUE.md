@@ -36,20 +36,25 @@ Read `README.md`, `SETUP.md`, `RECORDING.md` and `WEEK-01.md` in the project bef
   zero/negative amounts. Step 5 reconciliation returned `TRUE` on all three tables — every Bronze
   row accounted for as Silver, quarantined, or removed duplicate. Products 20 → 5, regions 12 → 5.
   Silver totals: premium **127,248,528.88**, claim amount **1,063,516,068.75**.
-- **Stages 3–7 — not started.**
+- **Stage 3 — DONE and verified (2026-08-12).** GOLD holds `DIM_BROKER` 51, `DIM_DATE` 1,462,
+  `DIM_POLICY` **5,603** (5,001 current + **602 closed**), `FACT_CLAIM` **11,887**. The SCD Type 2
+  MERGE closed and reopened exactly 602 changed policies in one statement. `FACT_CLAIM` matching
+  Silver's 11,887 exactly proves the version-aware date-range join did not fan out — grain holds at
+  one row per claim.
+- **Stages 4–7 — not started.**
 
-**Next action:** write `sql/03_gold.sql` — `dim_broker`, `dim_date`, `dim_policy` (SCD Type 2),
-`fact_claim`. This is the highest-value stage of the whole week: it proves the Gold-layer resume
-claim and the star-schema/SCD2 claim in one piece of work.
+**Next action:** write `sql/04_streams_tasks.sql` — a stream on each Bronze table and tasks
+promoting Bronze → Silver → Gold only when there is data.
 
-Grain, decided and unchanged: **one row of `fact_claim` = one claim.**
+Key things to prove at Stage 4: run the pipeline twice with no new data and confirm nothing moves
+(idempotence). Note the SCD2 MERGE is *already* idempotent — rerunning it reports 0 updated,
+0 inserted, because change detection compares extract 2 against a dimension that already holds
+extract 2. Reading a stream inside a DML statement advances its offset — that is the favourite
+interview question on this topic.
 
-The raw material for SCD2 is already sitting in `SILVER.POLICIES` — 602 policies appear twice with
-different status/premium across the 2026-08-01 and 2026-08-15 extracts. Each should end up as one
-closed row (`valid_to` set, `is_current = FALSE`) and one current row.
-
-Orphan claims (128, flagged `is_orphan_policy`) must point at an "unknown policy" dimension member,
-not be dropped — dropping them breaks the control totals the Stage 5 gate reconciles against.
+Still outstanding from Stage 3: capture the SCD2 before/after screenshot (heading 8 of
+`03_gold.sql` — one policy, two rows, one closed and one current) and put it in the README. It is
+the strongest single piece of evidence in the project.
 
 ## The stages
 
