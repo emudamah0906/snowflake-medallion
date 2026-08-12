@@ -308,6 +308,18 @@ WHERE rn = 1
 
 -- 4b. Load the usable rows. Expect 11,887.
 --     Runs after SILVER.POLICIES exists, because the orphan flag joins to it.
+-- The orphan flag is a LEFT JOIN, not a correlated NOT EXISTS in the SELECT
+-- list. Snowflake does not evaluate a correlated EXISTS as a select-list
+-- expression — it fails with "Unsupported subquery type cannot be evaluated".
+-- Correlated subqueries are fine in a WHERE clause; in a SELECT list, reach
+-- for a join.
+--
+-- >>> WHY policy_keys IS `SELECT DISTINCT` <<<
+-- SILVER.POLICIES holds TWO rows per policy_id — one per extract date. Joining
+-- straight to it would match each claim twice and silently DOUBLE the table to
+-- 23,774 rows. That is join fan-out, and it is the most common way a fact table
+-- quietly becomes wrong: the query succeeds, the row count looks plausible, and
+-- every sum is exactly 2x. Always know the grain of what you join to.
 INSERT INTO SILVER.CLAIMS
 WITH ranked AS (
     SELECT *,
@@ -316,24 +328,32 @@ WITH ranked AS (
                ORDER BY _file_row_number
            ) AS rn
     FROM BRONZE.RAW_CLAIMS
+),
+deduped AS (
+    SELECT *
+    FROM ranked
+    WHERE rn = 1
+      AND NULLIF(TRIM(claim_id), '') IS NOT NULL
+      AND TRY_TO_DECIMAL(amount, 38, 2) IS NOT NULL
+      AND TRY_TO_DECIMAL(amount, 38, 2) > 0
+),
+policy_keys AS (
+    SELECT DISTINCT policy_id FROM SILVER.POLICIES
 )
 SELECT
-    TRIM(r.claim_id),
-    TRIM(r.policy_id),
-    TRY_TO_DATE(r.claim_date),
-    TRY_TO_DECIMAL(r.amount, 38, 2),
-    UPPER(TRIM(r.status)),                                   -- 'in review' -> 'IN REVIEW'
-    TRY_TO_DATE(r.claim_date) IS NULL,                       -- has_invalid_date
-    NOT EXISTS (SELECT 1 FROM SILVER.POLICIES p
-                WHERE p.policy_id = TRIM(r.policy_id)),      -- is_orphan_policy
-    TRY_TO_DECIMAL(r.amount, 38, 2) > 1000000,               -- is_amount_outlier
-    r._source_file,
-    r._loaded_at
-FROM ranked r
-WHERE r.rn = 1
-  AND NULLIF(TRIM(r.claim_id), '') IS NOT NULL
-  AND TRY_TO_DECIMAL(r.amount, 38, 2) IS NOT NULL
-  AND TRY_TO_DECIMAL(r.amount, 38, 2) > 0;
+    TRIM(d.claim_id),
+    TRIM(d.policy_id),
+    TRY_TO_DATE(d.claim_date),
+    TRY_TO_DECIMAL(d.amount, 38, 2),
+    UPPER(TRIM(d.status)),                                   -- 'in review' -> 'IN REVIEW'
+    TRY_TO_DATE(d.claim_date) IS NULL,                       -- has_invalid_date
+    p.policy_id IS NULL,                                     -- is_orphan_policy
+    TRY_TO_DECIMAL(d.amount, 38, 2) > 1000000,               -- is_amount_outlier
+    d._source_file,
+    d._loaded_at
+FROM deduped d
+LEFT JOIN policy_keys p
+       ON p.policy_id = TRIM(d.policy_id);
 
 
 -- =============================================================================
