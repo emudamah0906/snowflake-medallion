@@ -122,7 +122,7 @@ FROM (
            METADATA$FILENAME,
            METADATA$FILE_ROW_NUMBER,
            CURRENT_TIMESTAMP()
-    FROM @STG_RAW (FILE_FORMAT => FF_CSV, PATTERN => '.*policies_snapshot_.*[.]csv[.]gz')
+    FROM @STG_RAW (FILE_FORMAT => FF_CSV, PATTERN => '.*policies_snapshot_.*[.]csv([.]gz)?')
 )
 ON_ERROR = 'CONTINUE';
 
