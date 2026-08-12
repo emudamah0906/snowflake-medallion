@@ -41,20 +41,36 @@ Read `README.md`, `SETUP.md`, `RECORDING.md` and `WEEK-01.md` in the project bef
   MERGE closed and reopened exactly 602 changed policies in one statement. `FACT_CLAIM` matching
   Silver's 11,887 exactly proves the version-aware date-range join did not fan out — grain holds at
   one row per claim.
-- **Stages 4–7 — not started.**
+- **Stage 4 — BUILT AND RUN, NOT VERIFIED.** `sql/04_streams_tasks.sql`. Append-only streams on all
+  three Bronze tables, a four-task tree for the claims path. The demo output was never reported
+  back, so unlike Stages 1–3 there is no confirmation the counts landed at 11,889 / 11,889 / 114.
+  **Re-verify before building on it.**
+- **Stage 5 — SQL WRITTEN, NOT RUN.** `sql/05_reconciliation.sql`. Two stored procedures, 12 checks.
+  Sections 1–6 stand alone and do not need Stage 4's tasks; sections 7–9 rewire the task tree and
+  do.
+- **Stages 6–7 — not started.**
 
-**Next action:** write `sql/04_streams_tasks.sql` — a stream on each Bronze table and tasks
-promoting Bronze → Silver → Gold only when there is data.
+**Everything suspended 2026-08-12** to stop credit burn — task tree root suspended, both warehouses
+suspended. Trial stood at **$397 of $400 with 70 days left**, so four stages cost roughly $3.
 
-Key things to prove at Stage 4: run the pipeline twice with no new data and confirm nothing moves
-(idempotence). Note the SCD2 MERGE is *already* idempotent — rerunning it reports 0 updated,
-0 inserted, because change detection compares extract 2 against a dimension that already holds
-extract 2. Reading a stream inside a DML statement advances its offset — that is the favourite
-interview question on this topic.
+**Next action — in this order:**
 
-Still outstanding from Stage 3: capture the SCD2 before/after screenshot (heading 8 of
+1. `SHOW TASKS IN SCHEMA OPS` and confirm state. Resume children first, root LAST, if restarting.
+2. **Verify Stage 4** — run `04_streams_tasks.sql` sections 8 and 9. Expect no-new-data to leave
+   counts unchanged, then 3 inserted rows to give SILVER.CLAIMS / GOLD.FACT_CLAIM / OPS.QUARANTINE
+   = 11,889 / 11,889 / 114.
+3. **Run Stage 5 sections 1–7.** All 12 checks should return `PASSED = TRUE`. Then section 5 breaks
+   one fact row by $1,000 and the gate must RAISE — the error IS the success condition.
+4. Then Stage 6 (performance and cost) and Stage 7 (ship it).
+
+**Note:** counts shift by +2 claims if the Stage 4 demo has been run (11,889 not 11,887), and by a
+further +2 if Stage 5 section 8 has. Stage 5's checks compare layer to layer dynamically rather
+than against hardcoded totals, so they stay correct either way — but don't be thrown by the
+absolute numbers moving.
+
+**Still outstanding from Stage 3:** capture the SCD2 before/after screenshot (heading 8 of
 `03_gold.sql` — one policy, two rows, one closed and one current) and put it in the README. It is
-the strongest single piece of evidence in the project.
+the strongest single piece of evidence in the project and it is not yet captured.
 
 ## The stages
 
