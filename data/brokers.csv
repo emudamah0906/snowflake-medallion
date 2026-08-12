@@ -1,0 +1,52 @@
+broker_id,broker_name,region,email
+BRK0001,Isabel Okafor,Ontario,broker1@example.com
+BRK0002,Amara Ahmed,Ontario,broker2@example.com
+BRK0003,Daniel Kowalski,ALBERTA,broker3@example.com
+BRK0004,Noor Kowalski,Ontario,broker4@example.com
+BRK0005,Kwame Silva,Alberta,broker5@example.com
+BRK0006,Hana Osei,Ontario,broker6@example.com
+BRK0007,Grace Haddad,British Columbia,broker7@example.com
+BRK0008,Omar Okafor,Ontario,broker8@example.com
+BRK0009,Omar Kowalski,British Columbia,broker9@example.com
+BRK0010,Noor Okafor,alberta,broker10@example.com
+BRK0011,Chen Osei,British Columbia,broker11@example.com
+BRK0012,Priya Bergeron,Quebec,broker12@example.com
+BRK0013,Diego Nguyen,Ontario,broker13@example.com
+BRK0014,Diego Haddad,Quebec,broker14@example.com
+BRK0015,Sofia Ahmed,Ontario,broker15@example.com
+BRK0016,Kwame Nguyen,Quebec,broker16@example.com
+BRK0017,Fatima Bergeron,Atlantic,broker17@example.com
+BRK0018,Hana Dubois,Ontario,
+BRK0019,Omar Chen,  British Columbia ,broker19@example.com
+BRK0020,Omar Nguyen,Alberta,broker20@example.com
+BRK0021,Liam Tremblay,British Columbia,broker21@example.com
+BRK0022,Noor Rossi,Atlantic,broker22@example.com
+BRK0023,Omar Nguyen,Quebec,broker23@example.com
+BRK0024,Priya Osei,Ontario,broker24@example.com
+BRK0025,Isabel Chen,atlantic,broker25@example.com
+BRK0026,Liam Silva,British Columbia,broker26@example.com
+BRK0027,Priya Bergeron,Ontario,broker27@example.com
+BRK0028,Sofia Dubois,British Columbia,broker28@example.com
+BRK0029,Liam Sharma,British Columbia,broker29@example.com
+BRK0030,Noor Okafor,British Columbia,broker30@example.com
+BRK0031,Wei Tremblay,British Columbia,broker31@example.com
+BRK0032,Hana Silva,Ontario,broker32@example.com
+BRK0033,Daniel Haddad,British Columbia,broker33@example.com
+BRK0034,Chen Okafor,Ontario,broker34@example.com
+BRK0035,Hana Silva,Quebec,broker35@example.com
+BRK0036,Noor Tremblay,British Columbia,broker36@example.com
+BRK0037,Wei Silva,Quebec,broker37@example.com
+BRK0038,Isabel Bergeron,British Columbia,broker38@example.com
+BRK0039,Daniel Nguyen,QUEBEC,broker39@example.com
+BRK0040,Wei Kowalski,  Quebec ,broker40@example.com
+BRK0041,Wei Okafor,Ontario,broker41@example.com
+BRK0042,Wei Rossi,Alberta,broker42@example.com
+BRK0043,Fatima Kowalski,Atlantic,broker43@example.com
+BRK0044,Hana Chen,Quebec,broker44@example.com
+BRK0045,Omar Chen,Alberta,broker45@example.com
+BRK0046,Isabel Bergeron,  Ontario ,broker46@example.com
+BRK0047,Diego Okafor,Quebec,broker47@example.com
+BRK0048,Amara Chen,Quebec,broker48@example.com
+BRK0049,Fatima Okafor,Alberta,broker49@example.com
+BRK0050,Daniel Sharma,Atlantic,broker50@example.com
+BRK0008,Omar Okafor,Ontario,broker8@example.com
