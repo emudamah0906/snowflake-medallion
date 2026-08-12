@@ -31,8 +31,12 @@ Read `README.md`, `SETUP.md`, `RECORDING.md` and `WEEK-01.md` in the project bef
 - **Stages 2–7 — not started.**
 
 **Next action:** I run `sql/01_bronze.sql` and report the Step 5 counts. Expected: brokers **51**,
-policies **10,050** (two snapshots), claims **12,060**. If policies comes back 5,025 the `PATTERN`
-regex is missing the `.gz` suffix — fix that first.
+policies **10,050** (two snapshots), claims **12,060**.
+
+Run `LIST @STG_RAW` (step 0) before anything — it diagnoses every likely failure:
+- **policies 0** — files are plain `.csv`, so the `.gz` in the step 3 `PATTERN` matches nothing.
+  Snowflake anchors `PATTERN` to the whole filename, so a near-miss matches zero files, not some.
+- **policies 5,025** — only one snapshot is in the stage; re-`PUT` the missing one.
 
 Then write `sql/02_silver.sql`.
 

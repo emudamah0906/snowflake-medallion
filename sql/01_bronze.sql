@@ -12,6 +12,24 @@ USE SCHEMA BRONZE;
 
 
 -- =============================================================================
+-- 0. Pre-flight: what is actually sitting in the stage?
+--
+-- Run this FIRST. Every failure mode in this script traces back to the stage
+-- not containing what you think it contains.
+--
+-- Expect 4 files. If they end in .csv.gz you used PUT with AUTO_COMPRESS=TRUE
+-- (the default) and the PATTERN in step 3 is correct. If they end in plain
+-- .csv — a Snowsight drag-and-drop upload does this — step 3 matches nothing
+-- and RAW_POLICIES lands 0 rows. In that case drop the [.]gz from the pattern.
+--
+-- Sizes should be roughly: brokers ~2KB, each policy snapshot ~120KB,
+-- claims ~250KB. A 0-byte file means the PUT failed silently.
+-- =============================================================================
+
+LIST @STG_RAW;
+
+
+-- =============================================================================
 -- 1. Create the Bronze tables
 --
 -- Every column is VARCHAR. That is deliberate, and it is the single idea behind
@@ -134,7 +152,7 @@ ON_ERROR = 'CONTINUE';
 -- reconciliation, done by eye — Stage 5 automates exactly this comparison.
 -- =============================================================================
 
-SELECT 'RAW_BROKERS'  AS table_name, COUNT(*) AS rows FROM RAW_BROKERS
+SELECT 'RAW_BROKERS'  AS table_name, COUNT(*) AS row_count FROM RAW_BROKERS
 UNION ALL
 SELECT 'RAW_POLICIES', COUNT(*) FROM RAW_POLICIES
 UNION ALL
@@ -142,10 +160,26 @@ SELECT 'RAW_CLAIMS',   COUNT(*) FROM RAW_CLAIMS;
 
 
 -- Both snapshots present, and separable by extract_date?
-SELECT _source_file, extract_date, COUNT(*) AS rows
+-- Expect exactly two rows: 2026-08-01 → 5,025 and 2026-08-15 → 5,025.
+SELECT _source_file, extract_date, COUNT(*) AS row_count
 FROM RAW_POLICIES
 GROUP BY 1, 2
 ORDER BY 1;
+
+
+-- The money control totals. Write these down — Stage 5 reconciles Gold back
+-- against exactly these two numbers, and a variance beyond tolerance is what
+-- blocks promotion.
+--
+-- Expect  total_premium 127,861,219.71  ·  total_claim_amount 1,063,624,699.09
+--
+-- Note TRY_TO_DECIMAL(x, 38, 2), NOT TRY_TO_NUMBER(x). Bare TRY_TO_NUMBER
+-- defaults to NUMBER(38,0) and silently ROUNDS every value to a whole number.
+-- On 10,050 premiums that quietly moves the control total by hundreds of
+-- dollars — a reconciliation gate built on it would fire on phantom variance.
+-- Always state precision and scale when casting money.
+SELECT SUM(TRY_TO_DECIMAL(premium, 38, 2)) AS total_premium FROM RAW_POLICIES;
+SELECT SUM(TRY_TO_DECIMAL(amount,  38, 2)) AS total_claim_amount FROM RAW_CLAIMS;
 
 
 -- =============================================================================
@@ -158,17 +192,25 @@ ORDER BY 1;
 -- Silver's entire job, at Stage 2, is this list.
 -- =============================================================================
 
--- Malformed dates that would have killed a typed load
-SELECT start_date, COUNT(*) AS rows
+-- Malformed dates that would have killed a typed load.
+-- Expect 248 rows across five distinct bad values:
+--     '0000-00-00' 60 · 'N/A' 50 · '' (empty) 49 · '31/12/2025' 48 · '2026-13-45' 41
+--
+-- Look closely at '0000-00-00' and '2026-13-45'. Both are shaped like a valid
+-- ISO date — a regex or a LENGTH check passes them straight through. Only an
+-- actual calendar parse rejects them. That is the argument for TRY_TO_DATE over
+-- pattern-matching validation, and it is worth saying out loud on camera.
+SELECT start_date, COUNT(*) AS row_count
 FROM RAW_POLICIES
 WHERE TRY_TO_DATE(start_date) IS NULL
 GROUP BY 1
 ORDER BY 2 DESC;
 
--- Inconsistent casing and stray whitespace
+-- Inconsistent casing and stray whitespace.
+-- Expect 20 distinct values for what are really only 5 products.
 SELECT DISTINCT product FROM RAW_POLICIES ORDER BY 1;
 
--- Duplicate claim rows
+-- Duplicate claim rows. Expect 60 claim_ids appearing exactly twice.
 SELECT claim_id, COUNT(*) AS copies
 FROM RAW_CLAIMS
 GROUP BY 1
@@ -176,14 +218,14 @@ HAVING COUNT(*) > 1
 ORDER BY 2 DESC
 LIMIT 10;
 
--- Amounts that are zero, negative, or absurd
+-- Amounts that are zero, negative, or absurd. Expect 172.
 SELECT COUNT(*) AS suspect_amounts
 FROM RAW_CLAIMS
 WHERE TRY_TO_NUMBER(amount) IS NULL
    OR TRY_TO_NUMBER(amount) <= 0
    OR TRY_TO_NUMBER(amount) > 1000000;
 
--- Claims pointing at policies that do not exist
+-- Claims pointing at policies that do not exist. Expect 129.
 SELECT COUNT(*) AS orphan_claims
 FROM RAW_CLAIMS c
 WHERE NOT EXISTS (SELECT 1 FROM RAW_POLICIES p WHERE p.policy_id = c.policy_id);
