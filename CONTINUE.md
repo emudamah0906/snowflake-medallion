@@ -27,18 +27,31 @@ Read `README.md`, `SETUP.md`, `RECORDING.md` and `WEEK-01.md` in the project bef
 ## Status
 
 - **Stage 0 — DONE.** Environment built, 4 CSVs generated and staged in `@BRONZE.STG_RAW`.
-- **Stage 1 — SQL written, NOT RUN.** `sql/01_bronze.sql` is ready.
-- **Stages 2–7 — not started.**
+- **Stage 1 — DONE and verified (2026-08-12).** Bronze holds 51 brokers, 10,050 policies
+  (two snapshots), 12,060 claims. Every defect count matched the source exactly: 248 malformed
+  start_dates, 20 product spellings, 60 duplicate claim_ids, 172 suspect amounts, 129 orphans.
+  Reran the claims `COPY INTO` — 0 files processed, count unchanged at 12,060. Idempotence proven.
+- **Stage 2 — SQL written, NOT RUN.** `sql/02_silver.sql` is ready.
+- **Stages 3–7 — not started.**
 
-**Next action:** I run `sql/01_bronze.sql` and report the Step 5 counts. Expected: brokers **51**,
-policies **10,050** (two snapshots), claims **12,060**.
+**Next action:** I run `sql/02_silver.sql` in Snowsight, statement by statement, and report back.
 
-Run `LIST @STG_RAW` (step 0) before anything — it diagnoses every likely failure:
-- **policies 0** — files are plain `.csv`, so the `.gz` in the step 3 `PATTERN` matches nothing.
-  Snowflake anchors `PATTERN` to the whole filename, so a near-miss matches zero files, not some.
-- **policies 5,025** — only one snapshot is in the stage; re-`PUT` the missing one.
+Expected Silver results:
 
-Then write `sql/02_silver.sql`.
+| Table | Bronze | → Silver | Quarantined | Dupes removed |
+|---|---|---|---|---|
+| BROKERS | 51 | **50** | 0 | 1 |
+| POLICIES | 10,050 | **10,000** (5,000 per extract) | 0 | 50 |
+| CLAIMS | 12,060 | **11,887** | 113 | 60 |
+
+Flags kept (not quarantined): policies invalid start_date **246**, invalid end_date **200**;
+claims invalid date **251**, orphan policy_id **128**, amount outlier **59**.
+Products 20 → **5**. Regions 12 → **5**.
+Silver totals: premium **127,248,528.88**, claim amount **1,063,516,068.75**.
+
+Step 5 must show `reconciled = TRUE` on all three rows.
+
+Then write `sql/03_gold.sql`.
 
 ## The stages
 
@@ -67,6 +80,15 @@ as **two dated snapshots** with 602 changed policies — that's what exercises S
 - I'm **recording each stage as a short video**, so flag the moments worth demoing. See
   `RECORDING.md`.
 - Explain *why*, not just what. I need to defend this in interviews.
+- **Act as a coach. One instruction at a time.** I have 6 years of ETL behind me on Oracle and SQL
+  Server, so SQL itself is familiar — it's the *Snowflake* concepts that are new, and this is my
+  first time doing it hands-on. Multi-part answers with three things at once lose me. Give me one
+  action, let me do it, then the next.
+- **Compute the expected numbers from the source CSVs before I run anything.** Having a real target
+  to check against has been the single most useful thing — it turns "looks fine" into a real check,
+  and it caught a silent 0-row load.
+- I work in the **Snowsight Workspaces** UI, running statement by statement with ⌘+Enter. Screenshots
+  of the results grid are easier for me than transcribing numbers — ask for those.
 
 ## Gotchas already hit
 
@@ -75,5 +97,21 @@ as **two dated snapshots** with 602 changed policies — that's what exercises S
 - **Snowflake username is not the login email** — it's `<YOUR_SNOWFLAKE_USER>`, not `<your-login-email>`.
   Wrong username reports as "Incorrect username or password".
 - First run of `00_setup.sql` needed `--database SNOWFLAKE` because `INSURANCE_DEMO` didn't exist yet.
+- **Snowsight Workspaces keeps its OWN copy of the SQL file.** Editing `sql/*.sql` on the Mac does
+  *not* change what's open in the browser, and vice versa. When a fix is needed, paste the whole
+  statement in — hand-retyping one fragment produced a doubled `[[` and an extra `)` and cost a
+  round trip. Re-paste the file from the repo at the start of each stage.
+- **`PATTERN` is anchored to the entire filename.** A near-miss matches *zero* files, not some. The
+  `.gz`-only pattern silently landed 0 policy rows; it's now `'.*policies_snapshot_.*[.]csv([.]gz)?'`
+  which tolerates both.
+- **"Copy executed with 0 files processed" is ambiguous** — it means either *nothing matched the
+  pattern* (a bug) or *every file was already loaded* (correct idempotence). Check the table's row
+  count to tell them apart.
+- **`ROWS` is a Snowflake reserved word** — it can't be used as a column alias without quoting.
+- **`TRY_TO_NUMBER(x)` defaults to `NUMBER(38,0)` and silently rounds.** Always
+  `TRY_TO_DECIMAL(x, 38, 2)` for money, or control totals drift by hundreds of dollars.
+- The Snowsight context picker can sit on `COMPUTE_WH` even though the script says
+  `USE WAREHOUSE WH_MEDALLION`. Check the top-right bar — Stage 6's cost comparison needs
+  `WH_MEDALLION`.
 
 ---
