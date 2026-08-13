@@ -7,8 +7,8 @@ left off.
 
 ## Where everything is
 
-- **Project:** `~/Desktop/Data Engineer Plan 2026/04-Projects/snowflake-medallion/` (git repo, 4 commits)
-- **Career plan root:** `~/Desktop/Data Engineer Plan 2026/`
+- **Project:** `~/Desktop/DE Portfolio 2026/04-Projects/snowflake-medallion/` (git repo)
+- **Career plan root:** `~/Desktop/DE Portfolio 2026/`
   - `00-Master-Resume/` — master resume + `build_resume.js` + `PROFILE-CONSISTENCY.md`
   - `02-Study-Materials/Snowflake/WEEK-01.md` — the 8-stage build plan for this project
   - `03-Interview-Materials/` — `STUDY_PLAN.md`, `HINDUJA_DOMAIN_BRIEF.md`

@@ -67,7 +67,7 @@ Common failures:
 ## Step 3 — Build the environment
 
 ```bash
-cd ~/Desktop/"Data Engineer Plan 2026"/04-Projects/snowflake-medallion
+cd ~/Desktop/"DE Portfolio 2026"/04-Projects/snowflake-medallion
 snow sql -c medallion --database SNOWFLAKE -f sql/00_setup.sql
 ```
 
