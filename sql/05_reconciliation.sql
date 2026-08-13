@@ -1,21 +1,14 @@
--- =============================================================================
+-- ============================================================================
 -- Stage 5 — RECONCILIATION GATE
+-- Steps 4 and 5 are the ones to record.
 --
--- This is the resume line, literally: "automated data validation and
--- reconciliation processes that compare source control totals to loaded data
--- and block promotion between layers when variance is detected."
+-- GATE vs REPORT. A report tells you afterwards that yesterday was wrong.
+-- A gate stops the wrong numbers reaching the layer people query.
 --
--- After this file it is something you built.
---
--- WHAT MAKES THIS A GATE AND NOT A REPORT.
--- A report tells you afterwards that yesterday's numbers were wrong. A gate
--- stops the wrong numbers reaching the layer people query. The mechanism is
--- ordinary: a stored procedure RAISEs an exception, the task running it fails,
--- and every task downstream of it never fires. Gold simply does not get built
--- from a Silver that does not tie.
---
--- Steps 4 and 5 are the ones worth recording.
--- =============================================================================
+-- The mechanism is ordinary: a stored procedure RAISEs, the task running it
+-- fails, and every task downstream never fires. Gold doesn't get built from a
+-- Silver that doesn't tie.
+-- ============================================================================
 
 USE ROLE ACCOUNTADMIN;
 USE WAREHOUSE WH_MEDALLION;
@@ -23,14 +16,15 @@ USE DATABASE INSURANCE_DEMO;
 USE SCHEMA OPS;
 
 
--- =============================================================================
+-- ============================================================================
 -- 1. Where results live
 --
--- Every check writes a row every run, pass or fail. Keeping the passes matters
--- as much as keeping the failures: a variance that has been drifting upward for
--- six days is a different conversation from one that appeared this morning, and
--- you can only tell them apart with history.
--- =============================================================================
+-- Every check writes a row every run, pass or fail.
+--
+-- Keeping the passes matters as much as the failures: a variance that's been
+-- drifting up for six days is a different conversation from one that appeared
+-- this morning. You can only tell them apart with history.
+-- ============================================================================
 
 CREATE OR REPLACE TABLE OPS.RECONCILIATION (
     run_label      VARCHAR,
@@ -47,36 +41,33 @@ CREATE OR REPLACE TABLE OPS.RECONCILIATION (
 );
 
 
--- =============================================================================
+-- ============================================================================
 -- 2. GATE 1 — Bronze → Silver
---
 -- Runs BEFORE Gold is built. If it fails, Gold is never promoted.
 --
--- >>> ON TOLERANCES — have an opinion, because you will be asked <<<
+-- >>> TOLERANCES — have an opinion, you WILL be asked <<<
 --
--- Tolerance 0 for anything STRUCTURAL. Row counts and key uniqueness are not
--- approximately right; they are right or the pipeline is broken. A tolerance
--- here would only ever hide a bug.
+--   0      for STRUCTURAL. Row counts and key uniqueness aren't approximately
+--          right — they're right, or the pipeline is broken. A tolerance here
+--          only hides a bug.
 --
--- Tolerance 0.01 for MONEY. Not because a cent of drift is acceptable, but
--- because decimal arithmetic across systems produces sub-cent noise, and a gate
--- that fires on floating-point dust gets switched off within a week. A gate
--- nobody trusts is worse than no gate.
+--   0.01   for MONEY. Not because a cent of drift is fine, but because decimal
+--          arithmetic across systems makes sub-cent noise. A gate that fires on
+--          floating-point dust gets switched off within a week, and a gate
+--          nobody trusts is worse than no gate.
 --
--- Tolerance 2% for RATES. The orphan rate is the interesting one: some orphans
--- are normal — claims genuinely do arrive before their policy extract. One in
--- fifty is business as usual; one in five means an upstream feed broke. This is
--- the check that needs judgement rather than arithmetic, and being able to say
--- "I set that threshold, here is why, and here is what I would do at 3am when
--- it fires" is the answer they are actually listening for.
+--   2%     for RATES. Some orphans are normal — claims do arrive before their
+--          policy extract. One in fifty is business as usual. One in five means
+--          an upstream feed broke. This one needs judgement, not arithmetic.
 --
--- THE FAIL-VS-QUARANTINE DECISION, stated plainly:
+-- FAIL vs QUARANTINE:
 --   Quarantine the ROW when one record is bad and the batch is fine.
---   Fail the RUN when the batch itself cannot be trusted.
---   113 claims with negative amounts is a data quality issue - quarantine them.
---   Silver holding fewer rows than Bronze can account for is a pipeline issue -
---   fail, because you no longer know what else it lost.
--- =============================================================================
+--   Fail the RUN when the batch itself can't be trusted.
+--
+--   113 negative amounts = data quality. Quarantine them.
+--   Silver holding fewer rows than Bronze can account for = pipeline problem.
+--   Fail, because you no longer know what else it lost.
+-- ============================================================================
 
 CREATE OR REPLACE PROCEDURE OPS.SP_RECONCILE_SILVER(RUN_LABEL VARCHAR)
 RETURNS VARCHAR
@@ -189,15 +180,14 @@ END;
 $$;
 
 
--- =============================================================================
+-- ============================================================================
 -- 3. GATE 2 — Silver → Gold
+-- Runs AFTER Gold is built. Guards what reporting actually reads.
 --
--- Runs AFTER Gold is built, and guards what reporting actually reads.
---
--- The dimensional checks here are the ones a Type 2 dimension can silently get
--- wrong: overlapping validity windows, more than one current row per policy,
--- and fact fan-out. All three produce a table that looks fine and sums wrong.
--- =============================================================================
+-- These are the three things a Type 2 dimension gets silently wrong:
+-- overlapping validity windows, more than one current row per policy, and fact
+-- fan-out. All three produce a table that looks fine and sums wrong.
+-- ============================================================================
 
 CREATE OR REPLACE PROCEDURE OPS.SP_RECONCILE_GOLD(RUN_LABEL VARCHAR)
 RETURNS VARCHAR
@@ -306,11 +296,10 @@ END;
 $$;
 
 
--- =============================================================================
--- 4.  >>> WORTH RECORDING <<<  Run both gates on clean data
---
--- Expect both to return PASSED, and all 12 checks to show passed = TRUE.
--- =============================================================================
+-- ============================================================================
+-- 4.  >>> RECORD THIS <<<   Both gates on clean data
+-- Expect PASSED from both, and all 12 checks TRUE.
+-- ============================================================================
 
 CALL OPS.SP_RECONCILE_SILVER('baseline');
 CALL OPS.SP_RECONCILE_GOLD('baseline');
@@ -321,17 +310,21 @@ WHERE run_label = 'baseline'
 ORDER BY gate, check_name;
 
 
--- =============================================================================
--- 5.  >>> THE MONEY SHOT — RECORD THIS <<<  Break it on purpose
+-- ============================================================================
+-- 5.  >>> THE MONEY SHOT — RECORD THIS <<<   Break it on purpose
 --
 -- Anyone can show a green dashboard. What proves a gate works is watching it
 -- go red and stop something.
 --
--- We nudge one claim in Gold by $1,000. Nothing else changes — the row count is
--- still right, the grain is still right, every dimension is still intact. Only
--- the control total moves, by 0.0001% of the total. That is exactly the kind of
--- error a human eye never catches and a control total always does.
--- =============================================================================
+-- One claim moves by $1,000. Out of $1.06 billion — 0.0001%.
+-- Row count still right. Grain still right. Every dimension intact.
+-- Only the control total moves.
+--
+-- That's exactly the error a human eye never catches and a control total
+-- always does.
+--
+-- THE ERROR IS THE SUCCESS CONDITION HERE.
+-- ============================================================================
 
 -- Before: what Gold currently totals.
 SELECT SUM(amount) AS gold_total_before FROM GOLD.FACT_CLAIM;
@@ -367,29 +360,27 @@ CALL OPS.SP_RECONCILE_GOLD('demo_fixed');
 -- Expect: PASSED - Silver to Gold reconciled, Gold is fit to publish
 
 
--- =============================================================================
+-- ============================================================================
 -- 7. Wire the gate into the task tree
 --
--- Until now the gates are something you call by hand. This is what makes them
--- actually block promotion.
---
--- The tree becomes:
+-- Until now the gates are something you call by hand. This makes them actually
+-- block promotion.
 --
 --   01 DRAIN STREAM
 --     ├── 02 QUARANTINE
 --     └── 03 SILVER
 --           └── 05 RECONCILE SILVER   <-- new gate
---                 └── 04 GOLD          <-- now runs ONLY if the gate passed
+--                 └── 04 GOLD          <-- runs ONLY if the gate passed
 --                       └── 06 RECONCILE GOLD
 --
--- If task 05 raises, it fails, and 04 never runs. Gold keeps yesterday's good
--- data instead of being overwritten with today's bad data. THAT is "blocking
--- promotion between layers", and it is now literally true of this pipeline.
+-- If 05 raises, it fails, and 04 never runs. Gold keeps yesterday's good data
+-- instead of being overwritten with today's bad data.
+--
+-- That's "blocking promotion between layers", and it's now literally true.
 --
 -- >>> SUSPEND THE ROOT BEFORE CHANGING ANYTHING <<<
--- Snowflake will not let you modify a task whose tree is running. Forgetting
--- this is the single most common error people hit with tasks.
--- =============================================================================
+-- Snowflake won't let you modify a task whose tree is running.
+-- ============================================================================
 
 ALTER TASK OPS.T_CLAIMS_01_DRAIN_STREAM SUSPEND;
 

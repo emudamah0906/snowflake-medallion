@@ -1,21 +1,18 @@
--- =============================================================================
--- Stage 0 — Environment setup
--- Run this once, top to bottom, in a Snowflake worksheet.
--- =============================================================================
+-- ============================================================================
+-- Stage 0 — Setup
+-- Build the environment. Run once, top to bottom.
+-- ============================================================================
 
--- ACCOUNTADMIN is only needed if you have to create the warehouse.
--- Use the least-privileged role that works for you.
 USE ROLE ACCOUNTADMIN;
 
 
--- -----------------------------------------------------------------------------
--- Warehouse — this is COMPUTE. It is separate from storage, and that separation
--- is the single most important thing to understand about Snowflake.
+-- ----------------------------------------------------------------------------
+-- WAREHOUSE = compute. Not a data warehouse — a cluster that runs queries.
+-- Nothing is stored in it. Storage lives separately, which is why I can turn
+-- this off and pay nothing while the data stays put.
 --
--- AUTO_SUSPEND = 60 means it parks after a minute idle. Billing is per-second
--- with a 60-second minimum, so a low auto-suspend genuinely saves money.
--- INITIALLY_SUSPENDED means creating it costs nothing.
--- -----------------------------------------------------------------------------
+-- AUTO_SUSPEND 60: parks after a minute idle. Billing is per-second.
+-- ----------------------------------------------------------------------------
 CREATE WAREHOUSE IF NOT EXISTS WH_MEDALLION
     WAREHOUSE_SIZE      = 'XSMALL'
     AUTO_SUSPEND        = 60
@@ -24,9 +21,10 @@ CREATE WAREHOUSE IF NOT EXISTS WH_MEDALLION
     COMMENT             = 'Compute for the medallion pipeline';
 
 
--- -----------------------------------------------------------------------------
--- Database and schemas — this is STORAGE. One schema per medallion layer.
--- -----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
+-- DATABASE + SCHEMAS = storage. One schema per layer.
+-- The architecture, expressed as folders.
+-- ----------------------------------------------------------------------------
 CREATE DATABASE IF NOT EXISTS INSURANCE_DEMO
     COMMENT = 'P and C insurance medallion demo';
 
@@ -40,13 +38,13 @@ CREATE SCHEMA IF NOT EXISTS OPS    COMMENT = 'Quarantine, reconciliation, run au
 USE WAREHOUSE WH_MEDALLION;
 
 
--- -----------------------------------------------------------------------------
--- File format — how Snowflake should parse the CSVs.
+-- ----------------------------------------------------------------------------
+-- FILE FORMAT = how to read the CSVs. Reusable, stored in the database.
 --
--- Note what is NOT here: no date parsing, no numeric coercion. Bronze takes
--- everything as text. A malformed date must not be able to fail the load —
--- that is the whole point of landing raw.
--- -----------------------------------------------------------------------------
+-- The last three settings deliberately do nothing. Bronze keeps the mess
+-- exactly as it arrived; Silver decides what's valid.
+-- No date parsing, no number handling — that's the point.
+-- ----------------------------------------------------------------------------
 CREATE OR REPLACE FILE FORMAT INSURANCE_DEMO.BRONZE.FF_CSV
     TYPE                         = 'CSV'
     FIELD_DELIMITER              = ','
@@ -58,17 +56,17 @@ CREATE OR REPLACE FILE FORMAT INSURANCE_DEMO.BRONZE.FF_CSV
     ERROR_ON_COLUMN_COUNT_MISMATCH = FALSE;
 
 
--- -----------------------------------------------------------------------------
--- Internal stage — where the CSVs land before COPY INTO.
--- -----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
+-- STAGE = a folder Snowflake manages. Files land here before becoming rows.
+-- ----------------------------------------------------------------------------
 CREATE STAGE IF NOT EXISTS INSURANCE_DEMO.BRONZE.STG_RAW
     FILE_FORMAT = INSURANCE_DEMO.BRONZE.FF_CSV
     COMMENT     = 'Landing stage for source CSV extracts';
 
 
--- -----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 -- Verify
--- -----------------------------------------------------------------------------
+-- ----------------------------------------------------------------------------
 SHOW SCHEMAS IN DATABASE INSURANCE_DEMO;
 SHOW STAGES IN SCHEMA INSURANCE_DEMO.BRONZE;
 
