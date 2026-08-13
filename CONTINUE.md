@@ -53,20 +53,32 @@ Read `README.md`, `SETUP.md`, `RECORDING.md` and `WEEK-01.md` in the project bef
 **Everything suspended 2026-08-12** to stop credit burn — task tree root suspended, both warehouses
 suspended. Trial stood at **$397 of $400 with 70 days left**, so four stages cost roughly $3.
 
-**Next action — in this order:**
+**Next action — a FULL REBUILD from Stage 0, then continue.**
 
-1. `SHOW TASKS IN SCHEMA OPS` and confirm state. Resume children first, root LAST, if restarting.
-2. **Verify Stage 4** — run `04_streams_tasks.sql` sections 8 and 9. Expect no-new-data to leave
-   counts unchanged, then 3 inserted rows to give SILVER.CLAIMS / GOLD.FACT_CLAIM / OPS.QUARANTINE
-   = 11,889 / 11,889 / 114.
-3. **Run Stage 5 sections 1–7.** All 12 checks should return `PASSED = TRUE`. Then section 5 breaks
-   one fact row by $1,000 and the gate must RAISE — the error IS the success condition.
-4. Then Stage 6 (performance and cost) and Stage 7 (ship it).
+The Stage 4 and Stage 5 demos inserted up to 5 extra claims into `BRONZE.RAW_CLAIMS`, so counts
+would read 12,065 rather than the documented 12,060. Rebuilding restores the exact numbers before
+recording. Every table is `CREATE OR REPLACE`, which also resets COPY INTO load history so the
+files reload rather than being skipped as already-loaded.
 
-**Note:** counts shift by +2 claims if the Stage 4 demo has been run (11,889 not 11,887), and by a
-further +2 if Stage 5 section 8 has. Stage 5's checks compare layer to layer dynamically rather
-than against hardcoded totals, so they stay correct either way — but don't be thrown by the
-absolute numbers moving.
+1. **`00_setup.sql`** — top to bottom. Safe to re-run.
+2. **`01_bronze.sql`** — expect 51 · 10,050 · 12,060, defects 248/20/60/172/129.
+3. **`02_silver.sql`** — expect 50 · 10,000 · 11,887, 113 quarantined, `reconciled = TRUE` ×3.
+4. **`03_gold.sql`** — expect 51 · 1,462 · 5,603 (5,001 current + 602 closed) · 11,887.
+   **Capture the SCD2 screenshot at heading 8 this time.**
+5. **`04_streams_tasks.sql`** — verify sections 8 and 9 properly this round.
+6. **`05_reconciliation.sql`** — 12 checks PASSED, then break it and watch the gate RAISE.
+7. Then Stage 6 (performance and cost) and Stage 7 (ship it).
+
+**Re-paste every file fresh from the repo into Snowsight.** All six had their comments rewritten
+2026-08-13 — shorter, plainer, expected values on the heading line for reading mid-take. The SQL
+is byte-identical to what was verified, only comments changed. Snowsight keeps its own copies, so
+the browser still has the old versions.
+
+**Replacing the Bronze tables makes the Stage 4 streams stale.** Expected — Stage 4 recreates them
+with `CREATE OR REPLACE STREAM`. Don't panic if a stream errors before you get there.
+
+**`SCRIPT.md`** is the recording script: spoken lines plus stage directions, episodes 0–3 fully
+written, 4–7 outlined. The deep reasoning moved there from the SQL comments.
 
 **Still outstanding from Stage 3:** capture the SCD2 before/after screenshot (heading 8 of
 `03_gold.sql` — one policy, two rows, one closed and one current) and put it in the README. It is
