@@ -72,8 +72,14 @@ Run the stage block, then `LIST @STG_RAW`.
 
 > A stage is just a folder Snowflake manages. Files live there, they're not tables yet.
 >
-> And notice — the files are `.csv.gz`. `PUT` compressed them on the way up. On my laptop they're
-> plain `.csv`. Same file, different name once it's inside Snowflake. That catches people out.
+> And look at the sizes. Every one is a few bytes bigger than the file on my laptop — and every
+> one is an exact multiple of sixteen.
+>
+> That's not corruption. Snowflake encrypts files at rest in an internal stage, and `LIST` reports
+> the encrypted size, padded up to the AES block boundary. The data is byte-identical.
+>
+> Worth knowing, because if you're reconciling file sizes to prove nothing got truncated in
+> transit, the raw number won't tie and you'll go hunting for a bug that doesn't exist.
 
 **Close:**
 

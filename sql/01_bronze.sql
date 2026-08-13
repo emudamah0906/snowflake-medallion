@@ -12,8 +12,13 @@ USE SCHEMA BRONZE;
 -- ============================================================================
 -- 0. What's actually in the stage?
 --
--- Run this first. Expect 4 files ending .csv.gz.
--- Plain .csv means the PATTERN in step 3 matches nothing and policies land 0.
+-- Run this first. Expect 4 files: brokers, claims, two policy snapshots.
+-- They are plain .csv — uploaded without AUTO_COMPRESS. Fine either way: the
+-- step 3 PATTERN ends ([.]gz)? so the extension is optional.
+--
+-- Sizes read a few bytes larger than the files on disk. Internal stages are
+-- encrypted at rest and LIST reports the ENCRYPTED size, padded up to the next
+-- 16-byte AES block. Not corruption — the data is byte-identical.
 -- ============================================================================
 
 LIST @STG_RAW;
