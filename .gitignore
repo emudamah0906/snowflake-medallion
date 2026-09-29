@@ -7,3 +7,14 @@ config.toml
 *.key
 *.p8
 .agents/
+
+# Python virtual environment
+.venv/
+
+# dbt build output
+target/
+dbt_packages/
+logs/
+
+# dbt machine-local anonymous id
+dbt/.user.yml

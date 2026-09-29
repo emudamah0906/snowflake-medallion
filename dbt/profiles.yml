@@ -1,0 +1,41 @@
+# How dbt logs in to Snowflake.
+#
+# WHY THIS FILE IS SAFE IN GIT: it has no secrets in it.
+#   Every private value is read from an environment variable with env_var().
+#   On my Mac they come from the .env file (Git ignores it).
+#   In GitHub Actions they will come from GitHub Secrets.
+#
+# HOW TO RUN (from the dbt/ folder):
+#   source ../.env
+#   dbt debug
+
+insurance_medallion:
+  target: dev                   # which output below to use by default
+
+  outputs:
+
+    # dev = my own sandbox. Safe to break.
+    dev:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: SVC_DBT
+      authenticator: snowflake_jwt          # log in with the key pair, not a password
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      role: TRANSFORMER
+      warehouse: WH_TRANSFORM
+      database: ANALYTICS
+      schema: DEV                           # everything dev builds starts with DEV_
+      threads: 4                            # build up to 4 models at the same time
+
+    # prod = the real tables reports read. Only CI deploys here, after a PR merges.
+    prod:
+      type: snowflake
+      account: "{{ env_var('SNOWFLAKE_ACCOUNT') }}"
+      user: SVC_DBT
+      authenticator: snowflake_jwt
+      private_key_path: "{{ env_var('SNOWFLAKE_PRIVATE_KEY_PATH') }}"
+      role: TRANSFORMER
+      warehouse: WH_TRANSFORM
+      database: ANALYTICS
+      schema: PROD
+      threads: 4

@@ -1,0 +1,8 @@
+# Python packages for this project. Install into the project's .venv:
+#   .venv/bin/python -m pip install -r requirements.txt
+#
+# Pinned to dbt 1.11. dbt 1.12 downloads an extra parser from GitHub during
+# install, which failed on this Mac with an SSL certificate error.
+# The same pins go into CI, so local and CI run the same dbt.
+dbt-core==1.11.15
+dbt-snowflake==1.11.6

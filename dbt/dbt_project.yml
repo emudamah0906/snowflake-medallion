@@ -1,0 +1,27 @@
+# dbt project settings. dbt reads this first on every run.
+
+name: insurance_medallion
+version: "1.0.0"
+
+# Which connection to use. The details are in profiles.yml, under this name.
+profile: insurance_medallion
+
+# Where each kind of file lives
+model-paths:    ["models"]      # SQL that builds tables and views
+snapshot-paths: ["snapshots"]   # SCD Type 2 history (Gold dim_policy)
+test-paths:     ["tests"]       # custom checks, e.g. reconciliation
+macro-paths:    ["macros"]      # reusable SQL snippets
+
+# dbt writes its build output here. Git ignores both folders.
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+# How each layer gets built
+models:
+  insurance_medallion:
+    staging:                    # Silver: clean and type the raw data
+      +schema: staging
+      +materialized: view       # a view is cheap. It re-reads RAW every query
+    marts:                      # Gold: star schema for reporting
+      +schema: marts
+      +materialized: table      # a table is fast to query. Reports hit these
