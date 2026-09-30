@@ -443,5 +443,5 @@ Your `COPY INTO` barely changes. **That's the point worth making in an interview
 That answer is true, shows you know the production path, and doesn't claim you built it.
 
 **Natural next step:** your Snowflake account runs on **GCP (us-east4)**, so a GCS external stage
-is the obvious follow-on — and that is exactly what the empty `04-Projects/gcp-pipeline/` is for.
+is the obvious follow-on — and that is exactly what the empty `Projects/gcp-pipeline/` is for.
 Same pipeline, real external ingestion, and it makes the Python bullet true.

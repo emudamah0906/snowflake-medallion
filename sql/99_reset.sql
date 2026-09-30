@@ -106,7 +106,7 @@ SHOW WAREHOUSES LIKE 'WH_MEDALLION';
 --
 -- Option B — terminal:
 --
---   snow sql -q "PUT 'file:///Users/maheshshettynani/Desktop/DE Portfolio 2026/04-Projects/snowflake-medallion/data/*.csv' @INSURANCE_DEMO.BRONZE.STG_RAW AUTO_COMPRESS=FALSE OVERWRITE=TRUE"
+--   snow sql -q "PUT 'file:///Users/maheshshettynani/Desktop/Career-Hub/Projects/snowflake-medallion/data/*.csv' @INSURANCE_DEMO.BRONZE.STG_RAW AUTO_COMPRESS=FALSE OVERWRITE=TRUE"
 --
 -- AUTO_COMPRESS=FALSE keeps them as plain .csv, matching how they are now.
 -- Turning it on would make them .csv.gz and contradict the notes in
