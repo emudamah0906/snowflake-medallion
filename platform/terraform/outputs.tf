@@ -35,3 +35,11 @@ output "upload_command" {
     "--auth-mode login",
   ])
 }
+
+# ---------------------------------------------------------------------------
+# For the Snowflake notification integration (Snowpipe auto-ingest).
+# ---------------------------------------------------------------------------
+output "storage_queue_uri" {
+  description = "Paste into AZURE_STORAGE_QUEUE_PRIMARY_URI on the notification integration."
+  value       = "https://${azurerm_storage_account.landing.name}.queue.core.windows.net/${azurerm_storage_queue.snowpipe.name}"
+}
