@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and fill in. Git ignores terraform.tfvars.
+#
+#   cp terraform.tfvars.example terraform.tfvars
+#
+# Find your subscription id with:  az account show --query id -o tsv
+
+subscription_id    = "00000000-0000-0000-0000-000000000000"
+budget_alert_email = "you@example.com"
+
+# Defaults are fine, override only if you need to:
+# location      = "canadacentral"
+# project       = "medallion"
+# budget_amount = 5

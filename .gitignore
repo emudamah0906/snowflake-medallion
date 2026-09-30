@@ -18,3 +18,18 @@ logs/
 
 # dbt machine-local anonymous id
 dbt/.user.yml
+
+# Terraform
+# .terraform/ is downloaded providers - big, and re-fetched by `terraform init`.
+# tfstate is the crown jewels: it records real resource IDs and can contain
+# storage account keys in plain text. It must never reach a public repo.
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+# Real variable values (subscription id, alert email). The .example stays.
+*.tfvars
+!*.tfvars.example
+# Saved plans can contain sensitive values too.
+tfplan
+*.tfplan
